@@ -1,0 +1,19 @@
+META_HOME="`echo $PWD`"
+TEST_HOME="/home/a0273011/Desktop/amsdk-testing/"
+
+# Location of the SDKs that will be tested/installed 
+SDK_DOWNLOAD_DIR="$TEST_HOME/sdk-directories"
+SAVED_ENV_FILE="$TEST_HOME/saved-env.txt"
+
+# Directory where tested sdks will be installed
+TEST_DIR=$TEST_HOME/test
+
+BUILD_ID="`date +build-%F_%H-%M-%S`"
+
+# Location that will store test logs
+TEST_LOGS_DIR="$TEST_HOME/test-logs/$BUILD_ID/"
+
+MACHINE_NAMES="am335x-evm"
+TEST_TYPE=2
+TEST_SDK_VARIATION="false"
+MAX_LENGTH="100"

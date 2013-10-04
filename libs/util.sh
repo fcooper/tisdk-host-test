@@ -15,6 +15,7 @@ reload_default_env()
     export PWD="$PWD"
 }
 
+# Parse the input config file to get the default variable settings
 parse_config_file() {
     inputfile="$1"
     if [ ! -e "$inputfile" ]
@@ -46,4 +47,3 @@ parse_config_file() {
         eval $var=$val
     done < $inputfile
 }
-

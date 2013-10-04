@@ -17,6 +17,9 @@ RANDOM_STRING_SPACES="8je8wrj398 q38j384jr934jr 32  j9834j2r89324jr324    j89423
 
 
 # Values (EXHAUSTIVE 4,NORMAL 2,SANITY 0)
+EXHAUSTIVE=4
+NORMAL=2
+SANITY=0
 TEST_TYPE=2
 
 TEST_SDK_VARIATION="false"
@@ -63,7 +66,7 @@ bitbake_test()
     export PATH=$toolchain_path:$PATH
     MACHINE=am335x-evm bitbake arago-base-image &>> $TEST_LOGS_DIR/$log_prefix-bitbake-test.txt
 
-    create_test_row "Bitbake arago-base-image" $? "bitbake-test.txt"
+    create_test_row "Bitbake arago-base-image" $? "$log_prefix-bitbake-test.txt"
 
     reload_default_env
 
@@ -123,50 +126,6 @@ makefile_test()
 
 }
 
-
-makefile_test1()
-{
-    sdk_path=$1
-
-    create_header "Makefile Tests"
-
-
-    if [ "$TEST_TYPE" -lt "$NORMAL" ]
-    then 
-        create_header "Skipping Make Tests"
-        return 0
-    fi
-
-    result="Failed"
-    cd "$sdk_path"
-
-    echo "Run makefile test"
-    #Make test
-    make &> $TEST_LOGS_DIR/make-test.txt
-
-    create_test_row "Make test" $? "make-test.txt"
-
-
-
-    # Maybe test for specific warning
-    #<command-line>:0:16: warning: missing whitespace after the macro name [enabled by default]
-    #warning: jobserver unavailable: using -j1.  Add `+' to parent make rule.
-    #No such file or directory
-
-    echo "Run makefile install test"
-    #Make test
-    make install &> $TEST_LOGS_DIR/$log_prefix-make-install-test.txt
-
-    create_test_row "Make install" $? "$log_prefix-make-install-test.txt"
-
-    echo "Run makefile clean test"
-    #Make test
-    make clean &> $TEST_LOGS_DIR/$log_prefix-make-install-clean.txt
-
-    create_test_row "Make clean" $? "$log_prefix-make-install-clean.txt"
-
-}
-
 toolchain_test()
 {
 
@@ -179,7 +138,7 @@ toolchain_test()
     source linux-devkit/environment-setup
 
     # Insure GDB with python support exist.
-    ${TOOLCHAIN_PREFIX}gdb --quiet --command=$TEST_HOME/scripts/gdb-python-test | grep -o ^hello\ world$ &> "$TEST_LOGS_DIR/$log_prefix-gdb-test.txt"
+    ${TOOLCHAIN_PREFIX}gdb --quiet --command=$META_HOME/scripts/gdb-python-test | grep -o ^hello\ world$ &> "$TEST_LOGS_DIR/$log_prefix-gdb-test.txt"
 
     create_test_row "GDB with python support" $? "$log_prefix-gdb-test.txt"
 
@@ -226,17 +185,9 @@ sdk_installation()
 
     if [ "$result" == "0" ]
     then
-        cd $TEST_HOME/scripts
-            cp -f Makefile Rules.make "$install_path/$install_name"
 
-            sed -i -e "s#__MAKE_JOBS__#24#" "$install_path/$install_name/Rules.make"
-            sed -i -e "s#__SDK__INSTALL_DIR__#\"$install_path/$install_name\"#" "$install_path/$install_name/Rules.make"
-            sed -i -e "s#__DESTDIR__#\"$TEST_DIR/$default_name/targetNFS\"#" "$install_path/$install_name/Rules.make"
-            sed -i -e "s#__KERNEL_NAME__#linux-3.11+3.12-rc1#" "$install_path/$install_name/Rules.make"
-
-            mkdir "$install_path/$install_name/targetNFS"
-
-        cd -
+        sed -i -e "s#__DESTDIR__#\"$TEST_DIR/$default_name/targetNFS\"#" "$install_path/$install_name/Rules.make"
+        mkdir "$install_path/$install_name/targetNFS"
 
         return 0
     else
@@ -256,7 +207,7 @@ function qt_build_test()
     create_header "Qt Build Test"
 
    
-    cp -r "$TEST_HOME/toolchain-test/qt-sources" "$sdk_path"
+    cp -r "$META_HOME/toolchain-test/qt-sources" "$sdk_path"
     
 
     cd "$sdk_path/qt-sources"
@@ -280,7 +231,7 @@ function qt_build_test()
             result=`echo $?`
         fi
 
-        create_test_row "Qt app build $directory" $result "$TEST_LOGS_DIR/$log_prefix-qt-build-$directory-test.txt"
+        create_test_row "Qt app build $directory" $result "$log_prefix-qt-build-$directory-test.txt"
 
 
         # Maybe check the binary?
@@ -305,7 +256,45 @@ function run_sdk_tests()
     qt_build_test $sdk_path
 }
 
+
+
+
+# Do not allow calling this script without passing the config file option
+if [ "$*" = "" ]
+then
+    echo "You must specify at least one option on the command line"
+    exit 1
+fi
+
+# Parse input options
+while getopts :f: arg
+do
+    case $arg in
+        f ) inputfile="$OPTARG";;
+    esac
+done
+
+
+if [ "X$inputfile" == "X" ]
+then
+    echo "Inputfile required"
+    exit 1
+fi
+
+
+
+# Parse the input config file to set the required build variables
+parse_config_file $inputfile
+
+set -x
+
+mkdir -p $TEST_HOME
+
+
+set +x
 save_default_env
+
+
 
 
 # This code should download/copy the SDKs locally for this script to use.
@@ -324,7 +313,7 @@ then
     rm -rf $TEST_LOGS_DIR
 fi
 
-mkdir $TEST_LOGS_DIR
+mkdir -p $TEST_LOGS_DIR
 
 cat << EOM >> $TEST_LOGS_DIR/results.html
 <html>
