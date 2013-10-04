@@ -286,16 +286,10 @@ fi
 # Parse the input config file to set the required build variables
 parse_config_file $inputfile
 
-set -x
-
 mkdir -p $TEST_HOME
 
 
-set +x
 save_default_env
-
-
-
 
 # This code should download/copy the SDKs locally for this script to use.
 # Assume for now that this is already done for us
